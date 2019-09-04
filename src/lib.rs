@@ -29,9 +29,9 @@ pub fn ping(
                 .map_err(|e| Error::from(e).context("send"))?;
             let (read, _) = sk.recv_from(&mut recv_buf)?;
             trace!(log, "received");
-            let now: TimeMsg = serde_json::from_slice(&recv_buf[..read])
+            let then: TimeMsg = serde_json::from_slice(&recv_buf[..read])
                 .map_err(|e| Error::from(e).context("Deserialize"))?;
-            let elapsed_ns = now.0 - then.0;
+            let elapsed_ns = time::precise_time_ns() - then.0;
             info!(log, "Ping response"; "from" => format!("{}", peer), "local" => format!("{}", sk.local_addr().unwrap()),  "time" => elapsed_ns);
             if elapsed_ns < 1_000_000 {
                 let wait = 1_000_000 - elapsed_ns;
