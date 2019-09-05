@@ -1,5 +1,5 @@
 use failure::Error;
-use rand::seq::IteratorRandom;
+//use rand::seq::IteratorRandom;
 use slog::Drain;
 use std::net::ToSocketAddrs;
 use std::sync::Mutex;
@@ -23,11 +23,13 @@ fn main() -> Result<(), Error> {
     let drain = Mutex::new(slog_term::FullFormat::new(decorator).build()).fuse();
     let log = slog::Logger::root(drain, slog::o!());
 
-    let mut rng = rand::thread_rng();
-
-    let sks: Vec<std::net::UdpSocket> = (5000..6000)
-        .filter_map(|p| std::net::UdpSocket::bind(("0.0.0.0", p)).ok())
-        .choose_multiple(&mut rng, opt.num);
+    //let mut rng = rand::thread_rng();
+    //let sks: Vec<std::net::UdpSocket> = (5000..6000)
+    //    .filter_map(|p| std::net::UdpSocket::bind(("0.0.0.0", p)).ok())
+    //    .choose_multiple(&mut rng, opt.num);
+    let sks: Vec<std::net::UdpSocket> = (5980..5990)
+        .map(|p| std::net::UdpSocket::bind(("0.0.0.0", p)).map_err(|e| e.into()))
+        .collect::<Result<_, Error>>()?;
     slog::debug!(log, "opened sks"; "num" => sks.len());
 
     let mut jhs = vec![];

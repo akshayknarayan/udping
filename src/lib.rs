@@ -32,7 +32,7 @@ pub fn ping(
             let then: TimeMsg = serde_json::from_slice(&recv_buf[..read])
                 .map_err(|e| Error::from(e).context("Deserialize"))?;
             let elapsed_ns = time::precise_time_ns() - then.0;
-            info!(log, "Ping response"; "from" => format!("{}", peer), "local" => format!("{}", sk.local_addr().unwrap()),  "time" => elapsed_ns);
+            info!(log, "Ping response"; "from" => format!("{}", peer), "local" => format!("{}", sk.local_addr().unwrap()),  "time" => elapsed_ns as f64 / 1e6);
             if elapsed_ns < 1_000_000 {
                 let wait = 1_000_000 - elapsed_ns;
                 std::thread::sleep(std::time::Duration::from_nanos(wait));
