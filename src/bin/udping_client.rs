@@ -1,9 +1,9 @@
-use failure::Error;
-//use rand::seq::IteratorRandom;
+use color_eyre::eyre::{Error, WrapErr};
 use slog::Drain;
 use std::net::ToSocketAddrs;
 use std::sync::Mutex;
 use structopt::StructOpt;
+use tokio::net::UdpSocket;
 
 #[derive(Clone, StructOpt)]
 struct Opt {
@@ -17,7 +17,9 @@ struct Opt {
     num: usize,
 }
 
-fn main() -> Result<(), Error> {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    color_eyre::install()?;
     let opt = Opt::from_args();
     let decorator = slog_term::TermDecorator::new().build();
     let drain = Mutex::new(slog_term::FullFormat::new(decorator).build()).fuse();
@@ -27,29 +29,26 @@ fn main() -> Result<(), Error> {
     //let sks: Vec<std::net::UdpSocket> = (5000..6000)
     //    .filter_map(|p| std::net::UdpSocket::bind(("0.0.0.0", p)).ok())
     //    .choose_multiple(&mut rng, opt.num);
-    let sks: Vec<std::net::UdpSocket> = (5980..5990)
-        .map(|p| std::net::UdpSocket::bind(("0.0.0.0", p)).map_err(|e| e.into()))
-        .collect::<Result<_, Error>>()?;
+    let mut sks = vec![];
+    for p in 5980..5990 {
+        let ip: std::net::IpAddr = "0.0.0.0".parse()?;
+        let sk = UdpSocket::bind((ip, p as u16)).await.wrap_err("bind")?;
+        sks.push(sk);
+    }
+
     slog::debug!(log, "opened sks"; "num" => sks.len());
 
-    let mut jhs = vec![];
+    let mut futs = vec![];
     for sk in sks {
         let l = log.clone();
         let server = opt.clone().server;
         let port = opt.port;
-        let jh = std::thread::spawn(move || {
-            udping::ping(
-                sk,
-                (server.as_str(), port).to_socket_addrs()?.next().unwrap(),
-                l,
-            )
-        });
-        jhs.push(jh);
+        let f = udping::ping(sk, (server, port).to_socket_addrs()?.next().unwrap(), l);
+
+        futs.push(f);
     }
 
-    for jh in jhs {
-        jh.join().unwrap()?;
-    }
+    futures_util::future::join_all(futs).await;
 
     Ok(())
 }

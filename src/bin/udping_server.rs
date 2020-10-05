@@ -1,4 +1,4 @@
-use failure::Error;
+use color_eyre::eyre::Error;
 use slog::Drain;
 use std::sync::Mutex;
 use structopt::StructOpt;
@@ -10,6 +10,7 @@ struct Opt {
 }
 
 fn main() -> Result<(), Error> {
+    color_eyre::install()?;
     let opt = Opt::from_args();
     let decorator = slog_term::TermDecorator::new().build();
     let drain = Mutex::new(slog_term::FullFormat::new(decorator).build()).fuse();
